@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDataSourceStorage">
+    <option name="dataSources">
+      <list>
+        <State>
+          <option name="id" value="f0b0ef11-7734-4305-82d9-0a1b82aef4bd" />
+          <option name="name" value="sakila-schema" />
+          <option name="languageId" value="GenericSQL" />
+          <option name="urls">
+            <array>
+              <option value="file://$USER_HOME$/Downloads/sakila-db/sakila-db/sakila-schema.sql" />
+              <option value="file://$USER_HOME$/Downloads/sakila-db/sakila-db/sakila-data.sql" />
+            </array>
+          </option>
+        </State>
+        <State>
+          <option name="id" value="b622a1af-7e7a-4b00-a96b-bee1c527feab" />
+          <option name="name" value="sakila-data" />
+          <option name="languageId" value="GenericSQL" />
+          <option name="urls">
+            <array>
+              <option value="file://$USER_HOME$/Downloads/sakila-db/sakila-db/sakila-data.sql" />
+            </array>
+          </option>
+        </State>
+      </list>
+    </option>
+  </component>
+</project>
