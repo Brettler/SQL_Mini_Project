@@ -2,38 +2,33 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 
-#PATH = 'C:\Users\liadb\PycharmProjects\SQL_Task1_reviewer'
-#load_dotenv('PATH')
-
+path = 'C:\\Users\\liadb\\PycharmProjects\\SQL_Task1_reviewer\\sql_pass.env'
+load_dotenv(path)
 password = os.getenv('MYSQL_ROOT_PASSWORD')
-def connect():
+# Create a connection
+cnx = mysql.connector.connect(
+    user='root',
+    password=password,
+    host='127.0.0.1',
+    database='sakila'
+)
+# Set autocommit to true (this is circumstantial, think twice if you want to use this)
+cnx.autocommit = True
+# Create a cursor with prepared=True, necessary to run prepared statements
+cursor = cnx.cursor(prepared=True)
+global cnx
 
-    # Create a connection
-    cnx = mysql.connector.connect(
-        user='root',
-        password='Damnit',
-        host='127.0.0.1',
-        database='sakila'
-    )
-
-    # Set autocommit to true (this is circumstantial, think twice if you want to use this)
-    cnx.autocommit = True
-
-    # Create a cursor with prepared=True, necessary to run prepared statements
-    cursor = cnx.cursor(prepared=True)
-
-
-
+def creat_tables():
     # Create the reviewer table IF NOT ALREADY EXISTS
     # No two reviewers can have the same ID. -> We use UNIQUE to take care of it.
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reviewer (
-            reviewer_id int NOT NULL PRIMARY KEY,
-            UNIQUE (reviewer_id),
-            first_name VARCHAR(45),
-            last_name VARCHAR(45)
-        );
-    """)
+                    CREATE TABLE IF NOT EXISTS reviewer (
+                        reviewer_id int NOT NULL PRIMARY KEY,
+                        UNIQUE (reviewer_id),
+                        first_name VARCHAR(45),
+                        last_name VARCHAR(45)
+                    );
+                """)
 
     # Create the table rating table IF NOT ALREADY EXISTS
     # The highest possible rating is 9.9, and the lowest possible rating is 0.0
@@ -49,16 +44,20 @@ def connect():
     # -> We dealing with it by explicitly saying of there is already rating for existing (film_id, reviewer_id) (meaning coflict)
     # we will update the old rating with the new one.
     cursor.execute("""
-                CREATE TABLE IF NOT EXISTS rating (
-                    film_id smallint,
-                    reviewer_id int,
-                    rating DECIMAL(2,1) NOT NULL,
-                    CHECK (rating BETWEEN 0.0 AND 9.9),
-                    UNIQUE (film_id, reviewer_id),
-                    FOREIGN KEY (film_id) REFERENCES film (film_id),
-                    FOREIGN KEY (reviewer_id) REFERENCES reviewer (reviewer_id)
-                );
-            """)
+                    CREATE TABLE IF NOT EXISTS rating (
+                        film_id smallint,
+                        reviewer_id int,
+                        rating DECIMAL(2,1) NOT NULL,
+                        CHECK (rating BETWEEN 0.0 AND 9.9),
+                        UNIQUE (film_id, reviewer_id),
+                        FOREIGN KEY (film_id) REFERENCES film (film_id),
+                        FOREIGN KEY (reviewer_id) REFERENCES reviewer (reviewer_id)
+                    );
+                """)
+
+
+def init():
+    creat_tables()
 
     # Ask the reviewer for their ID
     reviewer_id = input("Please Enter your ID: ")
@@ -85,25 +84,22 @@ def connect():
     # Greeting the reviewer with a greeting message
     print(f"Hello, {reviewer_first_name[0]} {reviewer_last_name[0]}")
 
-
     # add the same name with different id to the film table
     # Define the new movie details
-    #title = "ACADEMY DINOSAUR"
-    #id = 1001
-    #language_id = 1
+    # title = "ACADEMY DINOSAUR"
+    # id = 1001
+    # language_id = 1
 
     # Construct the INSERT statement
-    #query = f"INSERT INTO film (film_id, title, language_id) VALUES({id}, '{title}', {language_id})"
+    # query = f"INSERT INTO film (film_id, title, language_id) VALUES({id}, '{title}', {language_id})"
     # Execute the query
-    #cursor.execute(query)
-    #cnx.autocommit = True
+    # cursor.execute(query)
+    # cnx.autocommit = True
 
     # print all films titles.
     cursor.execute("SELECT title FROM film WHERE title REGEXP '$'")
     film_name = cursor.fetchall()
     print(film_name)
-
-
 
     # asking to enter film name
     flag = True
@@ -119,11 +115,13 @@ def connect():
         # If the movie presented only once the query will return None
         # else, it will return the title and the id's
         # Construct the SELECT query
-        #query = f"SELECT title, COUNT(*) AS count FROM film WHERE title = '{film_name}' GROUP BY title HAVING count > 1"
+        # query = f"SELECT title, COUNT(*) AS count FROM film WHERE title = '{film_name}' GROUP BY title HAVING count > 1"
         # Execute the query
-        #cursor.execute(query)
-        #film_many_titles = cursor.fetchall()
-        #if film_titles is not None meaning there are at least 2 film titles with the same name
+        # cursor.execute(query)
+        # film_many_titles = cursor.fetchall()
+        # if film_titles is not None meaning there are at least 2 film titles with the same name
+
+
         elif len(film_title) > 1:
             cursor.execute("SELECT film_id, release_year FROM film WHERE title = ?", (film_name,))
             film_id_year = cursor.fetchall()
@@ -134,39 +132,21 @@ def connect():
             if film_id_correct is None:
                 flag = True
             else:
-                # Disconnect from server
+                # Step 4 - asking for a rating
                 rating(film_name, reviewer_id, film_id_correct)
                 break
         else:
             print("you chose correct movie that had 1 title")
-            # Disconnect from server
+            # Step 4 - asking for a rating
             rating(film_name, reviewer_id, None)
             flag = False
 
     # Step 5 - Print all ratings
+    print_ratings()
 
-    cursor.execute("SELECT f.title, CONCAT(rev.first_name, ' ', rev.last_name) AS reviewer_full_name, rat.rating "
-                   "FROM rating AS rat, film AS f, reviewer AS rev "
-                   "WHERE rat.film_id = f.film_id AND rat.reviewer_id = rev.reviewer_id "
-                   "LIMIT 100")
-    output = cursor.fetchall()
-    print(output)
 
 # Step 4 - asking for a rating
 def rating(film_name, reviewer_id, film_id_correct=None):
-    # Create a connection
-    cnx = mysql.connector.connect(
-        user='root',
-        password='Damnit',
-        host='127.0.0.1',
-        database='sakila'
-    )
-
-    # Set autocommit to true (this is circumstantial, think twice if you want to use this)
-    cnx.autocommit = True
-
-    # Create a cursor with prepared=True, necessary to run prepared statements
-    cursor = cnx.cursor(prepared=True)
     flag = True
     while flag:
         if film_id_correct is None:
@@ -174,12 +154,12 @@ def rating(film_name, reviewer_id, film_id_correct=None):
             film_id_correct = cursor.fetchone()
         film_rating = input(f"Enter rating for the film {film_name}:")
         try:
-            #Start transaction
+            # Start transaction
             cnx.start_transaction()
 
             cursor.execute("INSERT INTO rating (film_id, reviewer_id, rating) VALUES (?, ?, ?)"
-                            "ON DUPLICATE KEY UPDATE rating = VALUES (rating)",
-                            (film_id_correct[0], reviewer_id, film_rating))
+                           "ON DUPLICATE KEY UPDATE rating = VALUES (rating)",
+                           (film_id_correct[0], reviewer_id, film_rating))
             result = cursor.fetchall()
             print(result)
 
@@ -190,8 +170,22 @@ def rating(film_name, reviewer_id, film_id_correct=None):
             # Rollback in case there is any error
             print("You entered invalid rating, please try again")
 
-
-    #cursor.execute("DROP TABLE reviewer ")
+    # cursor.execute("DROP TABLE reviewer ")
     # Press the green button in the gutter to run the script.
+
+ def print_ratings():
+     cursor.execute("SELECT f.title, CONCAT(rev.first_name, ' ', rev.last_name) AS reviewer_full_name, rat.rating "
+                    "FROM rating AS rat, film AS f, reviewer AS rev "
+                    "WHERE rat.film_id = f.film_id AND rat.reviewer_id = rev.reviewer_id "
+                    "LIMIT 100")
+     output = cursor.fetchall()
+     print(output)
+
+
+
+
+
+
+
 if __name__ == '__main__':
-    connect()
+    init()
