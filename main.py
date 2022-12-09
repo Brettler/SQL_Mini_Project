@@ -2,6 +2,7 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 
+
 path = 'C:\\Users\\liadb\\PycharmProjects\\SQL_Task1_reviewer\\sql_pass.env'
 load_dotenv(path)
 password = os.getenv('MYSQL_ROOT_PASSWORD')
@@ -16,19 +17,18 @@ cnx = mysql.connector.connect(
 cnx.autocommit = True
 # Create a cursor with prepared=True, necessary to run prepared statements
 cursor = cnx.cursor(prepared=True)
-global cnx
+
 
 def creat_tables():
     # Create the reviewer table IF NOT ALREADY EXISTS
     # No two reviewers can have the same ID. -> We use UNIQUE to take care of it.
     cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS reviewer (
-                        reviewer_id int NOT NULL PRIMARY KEY,
-                        UNIQUE (reviewer_id),
-                        first_name VARCHAR(45),
-                        last_name VARCHAR(45)
-                    );
-                """)
+                            CREATE TABLE IF NOT EXISTS reviewer (
+                                reviewer_id int NOT NULL PRIMARY KEY UNIQUE,
+                                first_name VARCHAR(45),
+                                last_name VARCHAR(45)
+                            );
+                        """)
 
     # Create the table rating table IF NOT ALREADY EXISTS
     # The highest possible rating is 9.9, and the lowest possible rating is 0.0
@@ -39,24 +39,26 @@ def creat_tables():
     # -> will make FOREIGN KEY as reviewer_id
     # A reviewer can rate a film only once -> we will use UNIQUE to take care of it.
     # unique pair of film id and reviewer id
-    # rating can’t be null -> we will use NOT NULL in the rating coulmn.
+    # rating can’t be null -> we will use NOT NULL in the rating column.
     # In regard to step 4: If the film was already rated by the reviewer, then the previous review should be updated.
-    # -> We dealing with it by explicitly saying of there is already rating for existing (film_id, reviewer_id) (meaning coflict)
+    # -> We are dealing with it by explicitly saying of there is already rating for existing (film_id, reviewer_id) (meaning conflict)
     # we will update the old rating with the new one.
     cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS rating (
-                        film_id smallint,
-                        reviewer_id int,
-                        rating DECIMAL(2,1) NOT NULL,
-                        CHECK (rating BETWEEN 0.0 AND 9.9),
-                        UNIQUE (film_id, reviewer_id),
-                        FOREIGN KEY (film_id) REFERENCES film (film_id),
-                        FOREIGN KEY (reviewer_id) REFERENCES reviewer (reviewer_id)
-                    );
-                """)
+                            CREATE TABLE IF NOT EXISTS rating (
+                                film_id SMALLINT UNSIGNED,
+                                reviewer_id int,
+                                rating DECIMAL(2,1) NOT NULL,
+                                CHECK (rating BETWEEN 0.0 AND 9.9),
+                                UNIQUE (film_id, reviewer_id),
+                                FOREIGN KEY (film_id) REFERENCES film (film_id),
+                                FOREIGN KEY (reviewer_id) REFERENCES reviewer (reviewer_id)
+                            );
+                        """)
 
 
-def init():
+
+def manage():
+    #creating reviewer and rating tables if not already exists.
     creat_tables()
 
     # Ask the reviewer for their ID
@@ -115,13 +117,11 @@ def init():
         # If the movie presented only once the query will return None
         # else, it will return the title and the id's
         # Construct the SELECT query
-        # query = f"SELECT title, COUNT(*) AS count FROM film WHERE title = '{film_name}' GROUP BY title HAVING count > 1"
+        #  = f"SELECT title, COUNT(*) AS count FROM film WHERE title = '{film_name}' GROUP BY title HAVING count > 1"
         # Execute the query
         # cursor.execute(query)
         # film_many_titles = cursor.fetchall()
         # if film_titles is not None meaning there are at least 2 film titles with the same name
-
-
         elif len(film_title) > 1:
             cursor.execute("SELECT film_id, release_year FROM film WHERE title = ?", (film_name,))
             film_id_year = cursor.fetchall()
@@ -143,6 +143,7 @@ def init():
 
     # Step 5 - Print all ratings
     print_ratings()
+    cnx.commit()
 
 
 # Step 4 - asking for a rating
@@ -156,36 +157,30 @@ def rating(film_name, reviewer_id, film_id_correct=None):
         try:
             # Start transaction
             cnx.start_transaction()
-
             cursor.execute("INSERT INTO rating (film_id, reviewer_id, rating) VALUES (?, ?, ?)"
                            "ON DUPLICATE KEY UPDATE rating = VALUES (rating)",
                            (film_id_correct[0], reviewer_id, film_rating))
             result = cursor.fetchall()
+            cnx.commit()
             print(result)
 
             flag = False
         except:
             # Rollback in case there is any error
             cnx.rollback()
-            # Rollback in case there is any error
             print("You entered invalid rating, please try again")
+    cnx.commit()
 
-    # cursor.execute("DROP TABLE reviewer ")
-    # Press the green button in the gutter to run the script.
 
- def print_ratings():
-     cursor.execute("SELECT f.title, CONCAT(rev.first_name, ' ', rev.last_name) AS reviewer_full_name, rat.rating "
+def print_ratings():
+    cursor.execute("SELECT f.title, CONCAT(rev.first_name, ' ', rev.last_name) AS reviewer_full_name, rat.rating "
                     "FROM rating AS rat, film AS f, reviewer AS rev "
                     "WHERE rat.film_id = f.film_id AND rat.reviewer_id = rev.reviewer_id "
                     "LIMIT 100")
-     output = cursor.fetchall()
-     print(output)
-
-
-
-
-
+    output = cursor.fetchall()
+    print(output)
 
 
 if __name__ == '__main__':
-    init()
+    # cursor.execute("DROP TABLE reviewer ")
+    manage()
