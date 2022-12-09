@@ -37,7 +37,7 @@ def connect():
 
     # Create the table rating table IF NOT ALREADY EXISTS
     # The highest possible rating is 9.9, and the lowest possible rating is 0.0
-    # -> We will use the constrain CHECK to check if the rating in the valid range.
+    # -> We will use the constraint CHECK to check if the rating in the valid range.
     # A rating record rates a single film, uniquely identified by film_id.
     # -> will make FOREIGN KEY as film_id
     # A rating record is rated by a single reviewer, uniquely identified by reviewer_id
